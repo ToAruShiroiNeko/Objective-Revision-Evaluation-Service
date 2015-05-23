@@ -8,7 +8,7 @@ from . import responses
 from .util import ParamError, read_bar_split_param
 
 
-def configure(config, bp, scorer_map):
+def configure(config, bp, scorer_map, cache):
 
     # /
     @bp.route("/", methods=["GET"])
@@ -41,7 +41,17 @@ def configure(config, bp, scorer_map):
                 return responses.bad_request(str(e))
 
         scores = {}
+
+        # Check the cache for relevant scores
         for rev_id in rev_ids:
+            try:
+                score[rev_id] = cache.score(rev_id, models=model_names)
+            except Exception as e:
+                pass
+
+        missing_rev_ids = [rid for rid in rev_ids if rid not in scores]
+
+        for rev_id, (error, score) in scorer.score_many(rev_ids, models=model_name):
 
             try:
                 score = scorer.score(rev_id, models=model_names)
